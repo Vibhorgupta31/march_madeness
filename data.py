@@ -1,5 +1,6 @@
 import json
 import io
+import warnings
 import pandas as pd
 import requests
 import streamlit as st
@@ -19,6 +20,7 @@ def _parse_csv_bytes(raw: bytes) -> pd.DataFrame | None:
 
     Expects columns: Date, Member_A, Member_B.
     Missing attendance values are filled with 0.
+    Rows with unparseable dates are silently dropped.
     Returns None if parsing fails or required columns are missing.
     """
     try:
@@ -30,6 +32,7 @@ def _parse_csv_bytes(raw: bytes) -> pd.DataFrame | None:
         df["Member_A"] = pd.to_numeric(df["Member_A"], errors="coerce").fillna(0).astype(int)
         df["Member_B"] = pd.to_numeric(df["Member_B"], errors="coerce").fillna(0).astype(int)
         df = df.dropna(subset=["Date"])
+        df = df[["Date", "Member_A", "Member_B"]]
         return df
     except Exception:
         return None
@@ -47,5 +50,6 @@ def fetch_team_data(csv_url: str) -> pd.DataFrame | None:
         response = requests.get(csv_url, timeout=10)
         response.raise_for_status()
         return _parse_csv_bytes(response.content)
-    except Exception:
+    except Exception as e:
+        warnings.warn(f"Failed to fetch team data from {csv_url!r}: {e}")
         return None

@@ -1,7 +1,5 @@
 import json
 import pandas as pd
-import pytest
-from unittest.mock import patch, MagicMock
 from data import load_teams, _parse_csv_bytes
 
 
@@ -38,6 +36,10 @@ def test_parse_csv_bytes_fills_missing_as_zero():
     df = _parse_csv_bytes(csv)
     assert df["Member_B"].tolist() == [0]
 
-def test_parse_csv_bytes_invalid_returns_none():
+def test_parse_csv_bytes_missing_columns_returns_none():
+    # Valid CSV but missing required columns
     df = _parse_csv_bytes(b"not,a,valid,csv\ngarbage")
     assert df is None
+
+def test_parse_csv_bytes_empty_returns_none():
+    assert _parse_csv_bytes(b"") is None
