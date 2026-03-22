@@ -15,12 +15,12 @@ ROW_COLORS = {
 def build_leaderboard():
     teams = load_teams()
     rows = []
-    warnings = []
+    load_errors = []
 
     for team in teams:
         df = fetch_team_data(team["csv_url"])
         if df is None:
-            warnings.append(f"Could not load data for **{team['name']}** — check the CSV URL.")
+            load_errors.append(f"Could not load data for **{team['name']}** — check the CSV URL.")
             continue
         stats = team_stats(df)
         rows.append({
@@ -30,7 +30,7 @@ def build_leaderboard():
             "Days Either Attended": stats["days_either"],
         })
 
-    for msg in warnings:
+    for msg in load_errors:
         st.warning(msg)
 
     if not rows:
@@ -39,7 +39,9 @@ def build_leaderboard():
 
     result_df = pd.DataFrame(rows).sort_values("Total Score", ascending=False).reset_index(drop=True)
     result_df.insert(0, "Rank", result_df.index + 1)
-    result_df["Rank"] = result_df["Rank"].apply(lambda r: f"{MEDAL.get(r, '')} {r}")
+    result_df["Rank"] = result_df["Rank"].apply(
+        lambda r: f"{MEDAL[r]} {r}" if r in MEDAL else str(r)
+    )
     return result_df
 
 
