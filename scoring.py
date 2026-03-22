@@ -6,7 +6,10 @@ MARCH_END = pd.Timestamp("2026-03-31")
 
 
 def score_day(member_a: int, member_b: int) -> int:
-    """Return points for a single day. Both=4, one=1, neither=0."""
+    """Return points for a single day. Both=4, one=1, neither=0.
+
+    Inputs are expected to be 0 or 1. Other values are not validated.
+    """
     if member_a == 1 and member_b == 1:
         return 4
     return int(member_a) + int(member_b)

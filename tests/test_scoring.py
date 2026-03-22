@@ -1,5 +1,4 @@
 import pandas as pd
-import pytest
 from scoring import score_day, score_week, score_team, team_stats
 
 
@@ -57,14 +56,9 @@ def test_score_week_empty():
 
 # --- score_team ---
 
-def _make_team_df(rows):
-    df = pd.DataFrame(rows, columns=["Date", "Member_A", "Member_B"])
-    df["Date"] = pd.to_datetime(df["Date"])
-    return df
-
 def test_score_team_ignores_out_of_range():
     # Feb row should be ignored
-    df = _make_team_df([
+    df = _make_week([
         ("2026-02-28", 1, 1),  # ignored
         ("2026-03-01", 1, 1),  # 4 pts, week of Mar 1 (Sun only)
     ])
@@ -73,7 +67,7 @@ def test_score_team_ignores_out_of_range():
 def test_score_team_accumulates_weeks():
     # Week 1: Mar 1 only, both attend → 4 pts, no bonus (only 1 day together)
     # Week 2: Mar 2-4, both attend → 3*4 + 3 = 15 pts
-    df = _make_team_df([
+    df = _make_week([
         ("2026-03-01", 1, 1),
         ("2026-03-02", 1, 1),
         ("2026-03-03", 1, 1),
@@ -82,14 +76,14 @@ def test_score_team_accumulates_weeks():
     assert score_team(df) == 4 + 15
 
 def test_score_team_empty():
-    df = _make_team_df([])
+    df = _make_week([])
     assert score_team(df) == 0
 
 
 # --- team_stats ---
 
 def test_team_stats_structure():
-    df = _make_team_df([
+    df = _make_week([
         ("2026-03-02", 1, 1),
         ("2026-03-03", 1, 0),
         ("2026-03-04", 0, 0),
@@ -98,7 +92,7 @@ def test_team_stats_structure():
     assert set(stats.keys()) == {"total_score", "days_both", "days_either"}
 
 def test_team_stats_values():
-    df = _make_team_df([
+    df = _make_week([
         ("2026-03-02", 1, 1),  # both
         ("2026-03-03", 1, 0),  # either
         ("2026-03-04", 0, 0),  # neither
