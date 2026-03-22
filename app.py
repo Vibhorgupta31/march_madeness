@@ -53,12 +53,12 @@ def style_leaderboard(df: pd.DataFrame):
     return df.style.apply(row_style, axis=1)
 
 
-def build_calendar(df: pd.DataFrame) -> pd.DataFrame:
+def build_calendar(df: pd.DataFrame, member_a: str = "Member A", member_b: str = "Member B") -> pd.DataFrame:
     """Build a per-day status DataFrame covering all of March 2026.
 
     Deduplicates by Date (keeps last row if duplicates exist), then
     reindexes to cover every day in March, filling missing days as 0.
-    Returns columns: Date, Member_A, Member_B, status, day_num, week.
+    Returns columns: Date, Member_A, Member_B, status, label, day_num, week.
     """
     # Deduplicate: if sheet has two rows for same date, keep last
     df = df.drop_duplicates(subset=["Date"], keep="last")
@@ -73,10 +73,16 @@ def build_calendar(df: pd.DataFrame) -> pd.DataFrame:
         if a == 1 and b == 1:
             return "both"
         if a == 1 or b == 1:
-            return "one"
+            return "one_a" if a == 1 else "one_b"
         return "none"
 
     df["status"] = df.apply(day_status, axis=1)
+    df["label"] = df["status"].map({
+        "both": f"{member_a} & {member_b}",
+        "one_a": member_a,
+        "one_b": member_b,
+        "none": "—",
+    })
     df["day_num"] = df.index.day
     df["week"] = df.index.to_series().dt.to_period("W-SUN")
     return df.reset_index().rename(columns={"index": "Date"})
@@ -84,14 +90,9 @@ def build_calendar(df: pd.DataFrame) -> pd.DataFrame:
 
 STATUS_COLOR = {
     "both": "#4CAF50",   # green
-    "one": "#FFC107",    # yellow/amber
+    "one_a": "#FFC107",  # yellow/amber
+    "one_b": "#FFC107",  # yellow/amber
     "none": "#9E9E9E",   # grey
-}
-
-STATUS_LABEL = {
-    "both": "Both",
-    "one": "One",
-    "none": "—",
 }
 
 
@@ -126,7 +127,7 @@ def render_calendar(cal_df: pd.DataFrame):
             else:
                 row = day_row.iloc[0]
                 color = STATUS_COLOR[row["status"]]
-                label = STATUS_LABEL[row["status"]]
+                label = row["label"]
                 day_n = int(row["day_num"])
                 html += (
                     f"<td style='padding:6px;text-align:center;"
@@ -171,19 +172,23 @@ elif page == "Team Detail":
         selected = st.selectbox("Select a team", team_names)
         team = next(t for t in teams if t["name"] == selected)
 
+        member_a = team.get("member_a", "Member A")
+        member_b = team.get("member_b", "Member B")
+
         df = fetch_team_data(team["csv_url"])
         if df is None:
             st.error(f"Could not load data for {selected}. Check the CSV URL.")
         else:
+            st.caption(f"Members: {member_a} & {member_b}")
             stats = team_stats(df)
             col1, col2, col3 = st.columns(3)
             col1.metric("Total Score", stats["total_score"])
-            col2.metric("Days Both Attended", stats["days_both"])
-            col3.metric("Days Either Attended", stats["days_either"])
+            col2.metric(f"Days Both Attended", stats["days_both"])
+            col3.metric(f"Days Either Attended", stats["days_either"])
 
             st.subheader("March Calendar")
-            st.caption("🟢 Both attended  🟡 One attended  ⚫ Neither")
-            cal_df = build_calendar(df)
+            st.caption(f"🟢 Both  🟡 One member  ⚫ Neither")
+            cal_df = build_calendar(df, member_a, member_b)
             render_calendar(cal_df)
 
             # Weekly breakdown table
