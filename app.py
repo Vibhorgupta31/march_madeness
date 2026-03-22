@@ -139,7 +139,9 @@ def render_calendar(cal_df: pd.DataFrame):
     st.markdown(html, unsafe_allow_html=True)
 
 
-# --- Page routing ---
+# --- Sidebar ---
+st.sidebar.image("images/images.png", use_container_width=True)
+st.sidebar.markdown("---")
 page = st.sidebar.radio("Navigate", ["Leaderboard", "Team Detail"])
 
 if page == "Leaderboard":
