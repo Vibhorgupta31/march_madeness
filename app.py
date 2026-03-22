@@ -107,8 +107,18 @@ def render_calendar(cal_df: pd.DataFrame):
 
     for week in week_order:
         week_df = cal_df[cal_df["week"] == week].copy()
-        week_df["wd_idx"] = pd.to_datetime(week_df["Date"]).dt.dayofweek  # Mon=0..Sun=6
-        html += f"<tr><td style='padding:6px;white-space:nowrap'>{str(week)}</td>"
+        week_df["wd_idx"] = week_df["Date"].dt.dayofweek  # Mon=0..Sun=6
+        week_start = week.start_time.date()
+        week_end = week.end_time.date()
+        mar_start = pd.Timestamp("2026-03-01").date()
+        mar_end = pd.Timestamp("2026-03-31").date()
+        display_start = max(week_start, mar_start)
+        display_end = min(week_end, mar_end)
+        if display_start == display_end:
+            week_label = display_start.strftime("Mar %-d")
+        else:
+            week_label = f"{display_start.strftime('Mar %-d')}–{display_end.strftime('%-d')}"
+        html += f"<tr><td style='padding:6px;white-space:nowrap'>{week_label}</td>"
         for wd in range(7):  # Mon=0 to Sun=6
             day_row = week_df[week_df["wd_idx"] == wd]
             if day_row.empty:
@@ -186,10 +196,20 @@ elif page == "Team Detail":
             weekly_rows = []
             for week, week_df in march_df.groupby("_week"):
                 days_both = int(((week_df["Member_A"] == 1) & (week_df["Member_B"] == 1)).sum())
-                week_score = score_week(week_df)
+                week_score = score_week(week_df.drop(columns=["_week"]))
                 bonus = 3 if days_both >= 3 else 0
+                week_start = week.start_time.date()
+                week_end = week.end_time.date()
+                mar_start = pd.Timestamp("2026-03-01").date()
+                mar_end = pd.Timestamp("2026-03-31").date()
+                display_start = max(week_start, mar_start)
+                display_end = min(week_end, mar_end)
+                if display_start == display_end:
+                    week_label = display_start.strftime("Mar %-d")
+                else:
+                    week_label = f"{display_start.strftime('Mar %-d')}–{display_end.strftime('%-d')}"
                 weekly_rows.append({
-                    "Week": str(week),
+                    "Week": week_label,
                     "Days Together": days_both,
                     "Base Score": week_score - bonus,
                     "Bonus": bonus,
